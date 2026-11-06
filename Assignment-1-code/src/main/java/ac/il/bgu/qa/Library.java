@@ -55,7 +55,7 @@ public class Library {
      *
      *  @param isbn The International Standard Book Number to be validated.
      *  @return true if valid, false otherwise.
-    */
+     */
     private boolean isISBNValid(String isbn) {
         // Check if the ISBN is null, return false if it is
         if (isbn == null) {
@@ -98,13 +98,13 @@ public class Library {
      *
      *  @param name The name of the author.
      *  @return true if valid, false otherwise.
-    */
+     */
     private boolean isAuthorValid(String name) {
         /*
          * Three key criteria for a valid author name:
          * 1) The name should only consist of alphabetic characters, hyphens, spaces, dots, and apostrophes.
          * 2) The name should start and end with an alphabetic character.
-         * 3) The name should not contain consecutive special characters like "--" or "''".
+         * 3) The name should not contain consecutive special characters ("--", "''", "  ", "..").
          */
 
         // If the name is null or empty, it's invalid.
@@ -128,8 +128,10 @@ public class Library {
             }
 
             // Check for consecutive special characters.
-            if ((current == '-' && next == '-')
-                    || (current == '\'' && next == '\'')) {
+            if ((current == '\'' && next == '\'') ||
+                (current == ' ' && next == ' ') ||
+                (current == '.' && next == '.') ||
+                (current == '-' && next == '-')) {
                 return false;
             }
         }
@@ -217,7 +219,7 @@ public class Library {
      * @param ISBN The International Standard Book Number of the book.
      */
     public void returnBook(String ISBN) {
-        
+
         // Validate the ISBN. If it's not valid, throw an exception.
         if (!isISBNValid(ISBN)) {
             throw new IllegalArgumentException("Invalid ISBN.");
@@ -328,7 +330,7 @@ public class Library {
             throw new IllegalArgumentException("Invalid ISBN.");
         }
 
-        // Validate the user Id format (should be a 12-digit number). 
+        // Validate the user Id format (should be a 12-digit number).
         // If it's invalid, throw an exception.
         if (userId == null || !userId.matches("\\d{12}")) {
             throw new IllegalArgumentException("Invalid user Id.");
@@ -359,4 +361,3 @@ public class Library {
         return book;
     }
 }
-
