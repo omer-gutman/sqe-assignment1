@@ -17,6 +17,13 @@ import static org.mockito.Mockito.*;
  */
 public class TestLibrary {
 
+    // ---------- Test data ----------
+
+    private static final String VALID_ISBN = "9780306406157";
+    private static final String VALID_TITLE = "Clean Code";
+    private static final String VALID_AUTHOR = "Robert Martin";
+    private static final String VALID_USER_ID = "123456789012";
+
     @Mock
     private DatabaseService mockDatabaseService;
 
@@ -48,6 +55,22 @@ public class TestLibrary {
     }
 
     // ---------- addBook ----------
+
+    @Test
+    void GivenValidBook_WhenAddBook_ThenBookIsAddedToDatabase() {
+        // Arrange
+        when(mockBook.getISBN()).thenReturn(VALID_ISBN);
+        when(mockBook.getTitle()).thenReturn(VALID_TITLE);
+        when(mockBook.getAuthor()).thenReturn(VALID_AUTHOR);
+        when(mockBook.isBorrowed()).thenReturn(false);
+        when(mockDatabaseService.getBookByISBN(VALID_ISBN)).thenReturn(null);
+
+        // Act
+        library.addBook(mockBook);
+
+        // Assert
+        verify(mockDatabaseService).addBook(VALID_ISBN, mockBook);
+    }
 
     // ---------- registerUser ----------
 

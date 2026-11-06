@@ -16,6 +16,7 @@ Submit only `TestLibrary.java` on Moodle by **12/11/2026 23:59**.
 ```bash
 ./check.sh   # course mini-grader, prints the grade (needs Java 17)
 ```
+Needs **Java 17** installed (newer Java breaks the grader's coverage tool). On Mac: `brew install --cask temurin@17`. You can keep a newer Java as your default, because `check.sh` picks 17 automatically.
 
 ## Workflow
 `git pull` → write tests in your sections → `./check.sh` → commit → `git pull --rebase && git push`
