@@ -189,6 +189,8 @@ public class TestLibrary {
             "Robert.",            // ends with a special character
             "Rob3rt Martin",      // digit inside the name
             "Robert@Martin",      // character that is not allowed
+            "A@B",                // not allowed, just before the last letter
+            "A3B",                // digit just before the last letter
             "Robert--Martin",     // consecutive hyphens
             "O''Brien",           // consecutive apostrophes
             "Robert  Martin",     // consecutive spaces
@@ -361,6 +363,25 @@ public class TestLibrary {
         // Assert
         verify(mockBook).borrow();
         verify(mockDatabaseService).borrowBook(VALID_ISBN, VALID_USER_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "978-0-306-40615-7",  // hyphens: must reach the database unchanged
+            "9783161484100"       // check digit 0
+    })
+    void GivenValidIsbnFormat_WhenBorrowBook_ThenBookIsBorrowedWithSameIsbn(String validIsbn) {
+        // Arrange
+        when(mockDatabaseService.getBookByISBN(validIsbn)).thenReturn(mockBook);
+        when(mockDatabaseService.getUserById(VALID_USER_ID)).thenReturn(mockUser);
+        when(mockBook.isBorrowed()).thenReturn(false);
+
+        // Act
+        library.borrowBook(validIsbn, VALID_USER_ID);
+
+        // Assert
+        verify(mockBook).borrow();
+        verify(mockDatabaseService).borrowBook(validIsbn, VALID_USER_ID);
     }
 
     @ParameterizedTest
