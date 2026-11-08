@@ -16,8 +16,10 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -480,6 +482,22 @@ public class TestLibrary {
         verify(mockDatabaseService, never()).borrowBook(anyString(), anyString());
     }
 
+    @Test
+    void GivenAvailableBook_WhenBorrowBook_ThenUpdateBookBeforeDatabase() {
+        // Arrange
+        when(mockDatabaseService.getBookByISBN(VALID_ISBN)).thenReturn(mockBook);
+        when(mockDatabaseService.getUserById(VALID_USER_ID)).thenReturn(mockUser);
+        when(mockBook.isBorrowed()).thenReturn(false);
+
+        // Act
+        library.borrowBook(VALID_ISBN, VALID_USER_ID);
+
+        // Assert
+        InOrder order = inOrder(mockBook, mockDatabaseService);
+        order.verify(mockBook).borrow();
+        order.verify(mockDatabaseService).borrowBook(VALID_ISBN, VALID_USER_ID);
+    }
+
     // ---------- returnBook ----------
     @ParameterizedTest
     @ValueSource(strings = {
@@ -546,6 +564,21 @@ public class TestLibrary {
         verify(mockBook, never()).returnBook();
         verify(mockDatabaseService, never()).returnBook(any());
     }
+    @Test
+    void GivenBorrowedBook_WhenReturnBook_ThenUpdateBookBeforeDatabase() {
+        // Arrange
+        when(mockDatabaseService.getBookByISBN(VALID_ISBN)).thenReturn(mockBook);
+        when(mockBook.isBorrowed()).thenReturn(true);
+
+        // Act
+        library.returnBook(VALID_ISBN);
+
+        // Assert
+        InOrder order = inOrder(mockBook, mockDatabaseService);
+        order.verify(mockBook).returnBook();
+        order.verify(mockDatabaseService).returnBook(VALID_ISBN);
+    }
+
     // ---------- notifyUserWithBookReviews ----------
     private void stubValidReviewNotification() {
         stubValidBook();
@@ -754,6 +787,23 @@ public class TestLibrary {
         verify(mockReviewService).getReviewsForBook(VALID_ISBN);
         verify(mockReviewService).close();
     }
+    @Test
+    void GivenReviewsAvailable_WhenNotifyUserWithBookReviews_ThenFetchBeforeClosingAndSending() {
+        // Arrange
+        stubValidReviewNotification();
+        String expectedMessage = "Reviews for '" + VALID_TITLE
+                + "':\nFirst review\nSecond review";
+
+        // Act
+        library.notifyUserWithBookReviews(VALID_ISBN, VALID_USER_ID);
+
+        // Assert
+        InOrder order = inOrder(mockReviewService, mockUser);
+        order.verify(mockReviewService).getReviewsForBook(VALID_ISBN);
+        order.verify(mockReviewService).close();
+        order.verify(mockUser).sendNotification(expectedMessage);
+    }
+
     // ---------- getBookByISBN ----------
         @ParameterizedTest
     @ValueSource(strings = {
