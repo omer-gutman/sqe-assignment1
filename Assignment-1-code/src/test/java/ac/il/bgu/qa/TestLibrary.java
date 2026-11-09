@@ -1,5 +1,7 @@
 package ac.il.bgu.qa;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -8,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -564,6 +567,7 @@ public class TestLibrary {
         verify(mockBook, never()).returnBook();
         verify(mockDatabaseService, never()).returnBook(any());
     }
+
     @Test
     void GivenBorrowedBook_WhenReturnBook_ThenUpdateBookBeforeDatabase() {
         // Arrange
@@ -580,6 +584,8 @@ public class TestLibrary {
     }
 
     // ---------- notifyUserWithBookReviews ----------
+
+    /** Stubs a valid book, a registered user and two reviews for VALID_ISBN. */
     private void stubValidReviewNotification() {
         stubValidBook();
         stubValidUser();
@@ -787,6 +793,7 @@ public class TestLibrary {
         verify(mockReviewService).getReviewsForBook(VALID_ISBN);
         verify(mockReviewService).close();
     }
+
     @Test
     void GivenReviewsAvailable_WhenNotifyUserWithBookReviews_ThenFetchBeforeClosingAndSending() {
         // Arrange
@@ -804,8 +811,31 @@ public class TestLibrary {
         order.verify(mockUser).sendNotification(expectedMessage);
     }
 
+    @Test
+    void GivenNotificationFailsOnce_WhenNotifyUserWithBookReviews_ThenLogRetryAttempt() {
+        // Arrange
+        stubValidReviewNotification();
+        doThrow(new NotificationException("Temporary delivery failure"))
+                .doNothing()
+                .when(mockUser).sendNotification(any());
+        ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+        PrintStream originalErr = System.err;
+        System.setErr(new PrintStream(errContent));
+
+        // Act
+        try {
+            library.notifyUserWithBookReviews(VALID_ISBN, VALID_USER_ID);
+        } finally {
+            System.setErr(originalErr);
+        }
+
+        // Assert
+        assertTrue(errContent.toString().contains("Notification failed! Retrying attempt 1/5"));
+    }
+
     // ---------- getBookByISBN ----------
-        @ParameterizedTest
+
+    @ParameterizedTest
     @ValueSource(strings = {
             "9780306406157",
             "978-0-306-40615-7",
@@ -1005,5 +1035,26 @@ public class TestLibrary {
         assertSame(mockBook, result);
         verify(mockDatabaseService, times(2)).getBookByISBN(VALID_ISBN);
         verifyNoInteractions(mockReviewService, mockUser);
+    }
+
+    @Test
+    void GivenNotificationAlwaysFails_WhenGetBookByISBN_ThenLogNotificationFailure() {
+        // Arrange
+        stubValidReviewNotification();
+        doThrow(new NotificationException("Delivery failed"))
+                .when(mockUser).sendNotification(any());
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outContent));
+
+        // Act
+        try {
+            library.getBookByISBN(VALID_ISBN, VALID_USER_ID);
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // Assert
+        assertTrue(outContent.toString().contains("Notification failed!"));
     }
 }
